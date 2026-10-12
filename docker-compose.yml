@@ -1,0 +1,124 @@
+name: ${COMPOSE_PROJECT_NAME:-librestaff}
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-librestaff_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+      - POSTGRES_DB=${POSTGRES_DB:-librestaff_db}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - librestaff_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    image: ${CONTAINER_IMAGE:-librestaff}:${IMAGE_TAG:-latest}
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      AUTH_TRUST_HOST: 'true'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-librestaff_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-librestaff_db}
+      AUTH_SECRET: ${AUTH_SECRET:-${NEXTAUTH_SECRET:-}}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET:-}}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      EMAIL_SETTINGS_ENCRYPTION_KEY: ${EMAIL_SETTINGS_ENCRYPTION_KEY:-}
+      MEDIA_STORAGE_DIR: ${MEDIA_STORAGE_DIR:-/app/storage/media}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-10485760}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-image/jpeg,image/png,image/webp,application/pdf}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - '3000'
+    volumes:
+      - librestaff_media:/app/public/media
+      - librestaff_media_private:/app/storage/media
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  migrate:
+    image: ${CONTAINER_IMAGE:-librestaff}:${IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-librestaff_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-librestaff_db}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -lc "pnpm db:migrate"
+    restart: 'no'
+
+  scheduler:
+    image: ${CONTAINER_IMAGE:-librestaff}:${IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-librestaff_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-librestaff_db}
+      CRON_SECRET: ${CRON_SECRET:-}
+      SCHEDULER_APP_URL: http://app:3000
+      SCHEDULER_POLL_SECONDS: ${SCHEDULER_POLL_SECONDS:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    command: node scripts/cron-scheduler.mjs
+    restart: unless-stopped
+    # The image healthcheck probes the Next.js server on port 3000. This
+    # worker does not serve HTTP, so inheriting that check always reports
+    # unhealthy even when the scheduler loop is running normally.
+    healthcheck:
+      disable: true
+
+  nginx:
+    image: nginx:stable-alpine
+    environment:
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME:-librestaff.example.com}
+      - NGINX_CERT_NAME=${NGINX_CERT_NAME:-librestaff.example.com}
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -e
+        CERT_DIR="/etc/letsencrypt/live/$$NGINX_CERT_NAME"
+        if [ -f "$$CERT_DIR/fullchain.pem" ] && [ -f "$$CERT_DIR/privkey.pem" ]; then
+          echo "Using TLS certificate from $$CERT_DIR"
+        else
+          echo "TLS certificate not found at $$CERT_DIR; generating temporary self-signed origin certificate"
+          apk add --no-cache openssl >/dev/null
+          CERT_DIR="/tmp/nginx-self-signed/$$NGINX_CERT_NAME"
+          mkdir -p "$$CERT_DIR"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 30 \
+            -subj "/CN=$$NGINX_CERT_NAME" \
+            -keyout "$$CERT_DIR/privkey.pem" \
+            -out "$$CERT_DIR/fullchain.pem" >/dev/null 2>&1
+        fi
+        export NGINX_CERT_PATH="$$CERT_DIR/fullchain.pem"
+        export NGINX_CERT_KEY_PATH="$$CERT_DIR/privkey.pem"
+        exec /docker-entrypoint.sh nginx -g 'daemon off;'
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  librestaff_pgdata:
+  librestaff_media:
+  librestaff_media_private:

@@ -1,0 +1,50 @@
+# -------------------------
+# Git
+.git
+.gitignore
+
+# -------------------------
+# Node / Package managers
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# -------------------------
+# Next.js
+.next
+out
+
+# -------------------------
+# Logs
+*.log
+
+# -------------------------
+# Environment / secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.backup
+.env*
+
+# -------------------------
+# OS / Editor junk
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# -------------------------
+# Tests / Coverage / Reports
+coverage
+playwright-report
+test-results
+.vitest
+*.lcov
+
+# -------------------------
+# Misc build artifacts
+*.tsbuildinfo
