@@ -1,11 +1,15 @@
 import { z } from 'zod'
+import { MIN_PASSWORD_LENGTH } from '@/lib/password-policy'
 
 export const UserFormSchema = z
   .object({
     email: z.string().min(1, 'Please enter a valid email address'),
     username: z.string().min(1, 'Username is required'),
-    password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
-    confirmPassword: z.string().min(6, 'Confirm password is required').optional(),
+    password: z
+      .string()
+      .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters long`)
+      .optional(),
+    confirmPassword: z.string().min(MIN_PASSWORD_LENGTH, 'Confirm password is required').optional(),
     fullName: z.string().min(1, 'Full name is required'),
     photo: z
       .custom<File | string | null>((v) => v === null || v instanceof File || typeof v === 'string')

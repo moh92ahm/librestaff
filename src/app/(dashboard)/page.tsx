@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const user = (await requireAuth()) as User
-  const home = await getHomePageData(user)
+  const home = await getHomePageData()
 
   return <HomePageContent home={home} userName={user.name} />
 }

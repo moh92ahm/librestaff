@@ -193,10 +193,13 @@ export function ExpenseReport({ payments, payroll }: ExpenseReportProps) {
     [locale, monthKeys, payments, payroll],
   )
 
-  const payrollTypeLabel = (kind: PayrollExpenseRecord['kind']) => {
-    if (!kind || kind === 'salary') return t('salary')
-    return enumT(`paymentCategory.${kind}` as any)
-  }
+  const payrollTypeLabel = React.useCallback(
+    (kind: PayrollExpenseRecord['kind']) => {
+      if (!kind || kind === 'salary') return t('salary')
+      return enumT(`paymentCategory.${kind}` as any)
+    },
+    [enumT, t],
+  )
 
   const pieData = React.useMemo(() => {
     const values = [
@@ -318,10 +321,22 @@ export function ExpenseReport({ payments, payroll }: ExpenseReportProps) {
       Created: formatDate(row.createdAt, locale),
       Updated: formatDate(row.updatedAt, locale),
     }))
-    const headers = ['Month', 'Source', 'Name', 'Category', 'Amount', 'Details', 'Date', 'Created', 'Updated']
+    const headers = [
+      'Month',
+      'Source',
+      'Name',
+      'Category',
+      'Amount',
+      'Details',
+      'Date',
+      'Created',
+      'Updated',
+    ]
     const csv = [
       headers.map(csvCell).join(','),
-      ...rowsForExport.map((row) => headers.map((header) => csvCell(row[header as keyof typeof row])).join(',')),
+      ...rowsForExport.map((row) =>
+        headers.map((header) => csvCell(row[header as keyof typeof row])).join(','),
+      ),
     ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)

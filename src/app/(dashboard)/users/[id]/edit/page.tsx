@@ -23,11 +23,9 @@ import { normalizeUsername } from '@/lib/usernames'
 import { normalizePhoneNumber } from '@/lib/phone-numbers'
 import { normalizeDisplayText } from '@/lib/display-text'
 import { documentMimeTypes, imageMimeTypes, saveUploadedMedia } from '@/lib/media-storage'
-import {
-  getActivityChanges,
-  writeMemberActivityLog,
-  writeMemberActivityLogs,
-} from '@/lib/member-activity'
+import { getActivityChanges, writeMemberActivityLogs } from '@/lib/member-activity'
+import { getUserEditCapabilities } from '@/lib/user-edit-policy'
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '@/lib/password-policy'
 
 interface EditUserPageProps {
   params: Promise<{
@@ -63,26 +61,38 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       notFound()
     }
 
-    // Fetch departments and roles for dropdowns
+    const pageCapabilities = getUserEditCapabilities({
+      actorUserId: currentUser.id,
+      targetUserId: id,
+      actorIsAdmin: isAdmin(currentUser),
+    })
+
+    // Only load administrative choices when the current editor can use them.
     const [departments, roles, managerOptions] = await Promise.all([
-      db.select().from(departmentsTable).orderBy(asc(departmentsTable.name)),
-      db.select().from(rolesTable).orderBy(asc(rolesTable.name)),
-      db
-        .select({
-          value: usersTable.id,
-          label: usersTable.fullName,
-          jobTitle: usersTable.jobTitle,
-        })
-        .from(departmentsTable)
-        .innerJoin(usersTable, eq(departmentsTable.managerUserId, usersTable.id))
-        .where(
-          and(
-            eq(usersTable.isActive, true),
-            eq(usersTable.visibleInTeamDirectory, true),
-            ne(usersTable.id, id),
-          ),
-        )
-        .orderBy(asc(usersTable.fullName)),
+      pageCapabilities.canEditAdministrativeFields
+        ? db.select().from(departmentsTable).orderBy(asc(departmentsTable.name))
+        : Promise.resolve([]),
+      pageCapabilities.canEditRole
+        ? db.select().from(rolesTable).orderBy(asc(rolesTable.name))
+        : Promise.resolve([]),
+      pageCapabilities.canEditAdministrativeFields
+        ? db
+            .select({
+              value: usersTable.id,
+              label: usersTable.fullName,
+              jobTitle: usersTable.jobTitle,
+            })
+            .from(departmentsTable)
+            .innerJoin(usersTable, eq(departmentsTable.managerUserId, usersTable.id))
+            .where(
+              and(
+                eq(usersTable.isActive, true),
+                eq(usersTable.visibleInTeamDirectory, true),
+                ne(usersTable.id, id),
+              ),
+            )
+            .orderBy(asc(usersTable.fullName))
+        : Promise.resolve([]),
     ])
 
     const handleUpdateUser = async (formData: FormData) => {
@@ -99,6 +109,12 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       if (!previousUser) {
         redirect('/team-members')
       }
+
+      const capabilities = getUserEditCapabilities({
+        actorUserId: actor.id,
+        targetUserId: id,
+        actorIsAdmin: isAdmin(actor),
+      })
 
       // Handle photo upload via API if file is provided
       let photoPath: string | null = null
@@ -119,11 +135,8 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       }
 
       // Normalize optionals; email field must not receive empty string
-      const jobTitle = normalizeDisplayText(formData.get('jobTitle'))
       const secondaryPhone = normalizePhoneNumber(formData.get('secondaryPhone'))
       const secondaryEmail = String(formData.get('secondaryEmail') || '')
-      const email = String(formData.get('email') || '')
-      const username = normalizeUsername(formData.get('username'))
 
       // Update the user
       const userData: any = {
@@ -131,55 +144,62 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         ...(photoPath && { photo: photoPath }),
         birthDate: String(formData.get('birthDate') || ''),
         primaryPhone: normalizePhoneNumber(formData.get('primaryPhone')),
-        ...(email ? { email } : {}),
-        ...(username ? { username } : {}),
-        joinedAt: String(formData.get('joinedAt') || ''),
-        employmentType: String(formData.get('employmentType') || 'other'),
-        employmentStartDate: String(formData.get('employmentStartDate') || '').trim() || null,
-        employmentNote: String(formData.get('employmentNote') || '').trim() || null,
-        personType: String(formData.get('personType') || 'employee'),
-        includeInHeadcount:
-          formData.get('includeInHeadcount') === 'on' ||
-          formData.get('includeInHeadcount') === 'true',
-        visibleInTeamDirectory:
-          formData.get('visibleInTeamDirectory') === 'on' ||
-          formData.get('visibleInTeamDirectory') === 'true',
         nationality: String(formData.get('nationality') || ''),
         identityNumber: String(formData.get('identityNumber') || ''),
         address: String(formData.get('address') || ''),
       }
 
       // Optional fields
-      userData.jobTitle = jobTitle || null
       userData.secondaryPhone = secondaryPhone || null
       userData.secondaryEmail = secondaryEmail || null
 
-      const departmentId = normalizeOptionalHierarchyId(formData.get('departmentId'))
-      const dottedManagerIds = readIndexedFormValues(formData, 'dottedManagers')
+      let dottedManagerIds: string[] | null = null
+      if (capabilities.canEditAdministrativeFields) {
+        const email = String(formData.get('email') || '')
+        const username = normalizeUsername(formData.get('username'))
+        const departmentId = normalizeOptionalHierarchyId(formData.get('departmentId'))
+        dottedManagerIds = readIndexedFormValues(formData, 'dottedManagers')
 
-      // Convert role string ID if value provided
-      const roleId = String(formData.get('role') || '')
-      if (roleId) userData.roleId = roleId
-
-      try {
-        await assertCanUpdateProtectedAdmin({
-          targetUserId: id,
-          nextRoleId: roleId || undefined,
-          nextIsActive: userData.isActive,
+        Object.assign(userData, {
+          jobTitle: normalizeDisplayText(formData.get('jobTitle')) || null,
+          ...(email ? { email } : {}),
+          ...(username ? { username } : {}),
+          joinedAt: String(formData.get('joinedAt') || ''),
+          employmentType: String(formData.get('employmentType') || 'other'),
+          employmentStartDate: String(formData.get('employmentStartDate') || '').trim() || null,
+          employmentNote: String(formData.get('employmentNote') || '').trim() || null,
+          personType: String(formData.get('personType') || 'employee'),
+          includeInHeadcount:
+            formData.get('includeInHeadcount') === 'on' ||
+            formData.get('includeInHeadcount') === 'true',
+          visibleInTeamDirectory:
+            formData.get('visibleInTeamDirectory') === 'on' ||
+            formData.get('visibleInTeamDirectory') === 'true',
+          departmentId,
         })
-      } catch (error) {
-        const message = await getProtectedAdminErrorMessage(error)
-        throw new Error(message || 'This user cannot be updated')
+
+        await validateEmployeeHierarchyInput({
+          targetUserId: id,
+          visibleInTeamDirectory: Boolean(userData.visibleInTeamDirectory),
+          departmentId,
+          dottedManagerIds,
+        })
       }
 
-      await validateEmployeeHierarchyInput({
-        targetUserId: id,
-        visibleInTeamDirectory: Boolean(userData.visibleInTeamDirectory),
-        departmentId,
-        dottedManagerIds,
-      })
+      if (capabilities.canEditRole) {
+        const roleId = String(formData.get('role') || '')
+        if (roleId) userData.roleId = roleId
 
-      userData.departmentId = departmentId
+        try {
+          await assertCanUpdateProtectedAdmin({
+            targetUserId: id,
+            nextRoleId: roleId || undefined,
+          })
+        } catch (error) {
+          const message = await getProtectedAdminErrorMessage(error)
+          throw new Error(message || 'This user cannot be updated')
+        }
+      }
 
       // Handle documents upload (multi-file) via API
       // Get existing document paths from the current user
@@ -211,14 +231,13 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       }
       userData.documents = JSON.stringify(documentPaths)
 
-      // Employment fields
-      const baseSalary = formData.get('baseSalary')
-      const paymentType = String(formData.get('paymentType') || 'bankTransfer')
-
-      // Add employment data - always include the structure to allow clearing fields
-      userData.employment = {
-        ...(baseSalary && { baseSalary: parseFloat(String(baseSalary)) }),
-        paymentType,
+      if (capabilities.canEditAdministrativeFields) {
+        const baseSalary = formData.get('baseSalary')
+        const paymentType = String(formData.get('paymentType') || 'bankTransfer')
+        userData.employment = {
+          ...(baseSalary && { baseSalary: parseFloat(String(baseSalary)) }),
+          paymentType,
+        }
       }
 
       const updatedAt = new Date().toISOString()
@@ -233,7 +252,9 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         .where(eq(usersTable.id, id))
         .returning()
 
-      await replaceDottedManagers(id, dottedManagerIds)
+      if (dottedManagerIds) {
+        await replaceDottedManagers(id, dottedManagerIds)
+      }
 
       const changes = updatedUser
         ? getActivityChanges(
@@ -309,8 +330,8 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       const newPassword = String(formData.get('newPassword') || '')
       const confirmNewPassword = String(formData.get('confirmNewPassword') || '')
 
-      if (newPassword.length < 6) {
-        return { error: 'Password must be at least 6 characters long.' }
+      if (newPassword.length < MIN_PASSWORD_LENGTH) {
+        return { error: passwordLengthError() }
       }
 
       if (newPassword !== confirmNewPassword) {
@@ -341,6 +362,8 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
             isAdmin(currentUser) ? <AdminPasswordResetForm action={handleUpdatePassword} /> : null
           }
           formAction={handleUpdateUser}
+          canEditAdministrativeFields={pageCapabilities.canEditAdministrativeFields}
+          canEditRole={pageCapabilities.canEditRole}
           departments={departments.map((dept) => ({
             value: String(dept.id),
             label: dept.name,

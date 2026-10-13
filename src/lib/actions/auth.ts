@@ -17,7 +17,7 @@ export async function loginAction(formData: FormData) {
       redirect: false,
     })
     return { success: true }
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
       error: 'Invalid email or password',

@@ -54,7 +54,7 @@ export function AdditionalPaymentForm({
   const t = useTranslations('payroll')
   const common = useTranslations('common')
   const enumT = useTranslations('enums')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const isSubmitting = false
 
   const form = useForm<AdditionalPaymentFormValues>({
     resolver: zodResolver(AdditionalPaymentSchema) as any,

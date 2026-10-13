@@ -2,7 +2,7 @@ import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { db } from '@/db'
 import { usersTable } from '@/db/schema'
-import { or, sql } from 'drizzle-orm'
+import { eq, or, sql } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { normalizeLoginIdentifier, normalizeLoginIdentifierLegacy } from '@/lib/usernames'
 import { consumeRateLimit, getClientIp } from '@/lib/rate-limit'
@@ -40,6 +40,21 @@ function normalizedStoredUsernameExpression() {
     '',
     'g'
   )`
+}
+
+function copyUserStateToToken(token: Record<string, unknown>, user: any) {
+  token.id = user.id
+  token.email = user.email
+  token.name = user.fullName ?? user.name
+  token.picture = user.photo ?? user.image
+  token.language = user.language
+  token.theme = user.theme
+  token.isActive = user.isActive
+  token.isProtectedAdmin = user.isProtectedAdmin
+  token.role = user.role
+  token.departmentId = user.departmentId
+  token.department = user.department
+  token.managedDepartments = user.managedDepartments
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -100,9 +115,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        // Don't send password to client
-        const { password, ...userWithoutPassword } = user
-
         return {
           id: user.id,
           email: user.email,
@@ -123,15 +135,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.language = (user as any).language
-        token.theme = (user as any).theme
-        token.isActive = (user as any).isActive
-        token.isProtectedAdmin = (user as any).isProtectedAdmin
-        token.role = (user as any).role
-        token.departmentId = (user as any).departmentId
-        token.department = (user as any).department
-        token.managedDepartments = (user as any).managedDepartments
+        copyUserStateToToken(token, user)
+      } else if (token.id) {
+        // JWT sessions are otherwise a stale authorization cache. Refresh the
+        // security-sensitive user state on every authenticated request so role
+        // changes, role disabling, and user deactivation take effect at once.
+        const currentUser = await db.query.usersTable.findFirst({
+          where: eq(usersTable.id, String(token.id)),
+          with: {
+            role: true,
+            department: true,
+            managedDepartments: true,
+          },
+        })
+
+        if (currentUser) {
+          copyUserStateToToken(token, currentUser)
+        } else {
+          token.isActive = false
+          token.role = null
+          token.managedDepartments = []
+        }
       }
       return token
     },

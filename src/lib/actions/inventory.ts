@@ -112,7 +112,9 @@ async function writeInventoryMemberActivity({
   current: InventoryRow
   actorUserId: string
 }) {
-  const holderChanged = previous ? previous.holderId !== current.holderId : Boolean(current.holderId)
+  const holderChanged = previous
+    ? previous.holderId !== current.holderId
+    : Boolean(current.holderId)
   const statusChanged = previous ? previous.status !== current.status : false
   const now = current.updatedAt || new Date().toISOString()
 
@@ -270,9 +272,7 @@ async function emitInventoryUpdateNotification({
       status: current.status,
       previousHolderId: previous.holderId,
       holderId: current.holderId,
-      previousHolderName: previous.holderId
-        ? holders.get(previous.holderId)?.fullName || ''
-        : '',
+      previousHolderName: previous.holderId ? holders.get(previous.holderId)?.fullName || '' : '',
       holderName: current.holderId ? holders.get(current.holderId)?.fullName || '' : '',
       linkUrl: '/inventory',
     },
@@ -405,9 +405,14 @@ export async function updateInventory(id: string, formData: FormData) {
   redirect(`/inventory/${id}`)
 }
 
-export async function getInventoryHolderOptions(includeUserId?: string | null) {
+export async function getInventoryHolderOptions(
+  action: 'create' | 'edit',
+  includeUserId?: string | null,
+) {
+  await requirePermission('inventory', action)
+
   const users = await db
-    .select()
+    .select({ id: usersTable.id, fullName: usersTable.fullName })
     .from(usersTable)
     .where(eq(usersTable.isActive, true))
     .orderBy(asc(usersTable.fullName))
@@ -416,6 +421,7 @@ export async function getInventoryHolderOptions(includeUserId?: string | null) {
 
   const existingHolder = await db.query.usersTable.findFirst({
     where: eq(usersTable.id, includeUserId),
+    columns: { id: true, fullName: true },
   })
 
   return existingHolder ? [...users, existingHolder] : users

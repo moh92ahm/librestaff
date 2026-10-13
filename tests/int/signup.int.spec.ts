@@ -76,11 +76,12 @@ function signupRequest(overrides: Record<string, unknown> = {}) {
       fullName: 'First User',
       email: 'first@example.com',
       username: 'firstuser',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: 'a-long-password-123',
+      confirmPassword: 'a-long-password-123',
       primaryPhone: '+90 555 000 00 00',
       birthDate: '1990-01-01',
       joinedAt: '2026-06-10',
+      setupSecret: 'test-setup-secret',
       ...overrides,
     }),
   })
@@ -90,6 +91,17 @@ describe('POST /api/signup', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
+    process.env.SETUP_SECRET = 'test-setup-secret'
+    vi.doMock('@/lib/rate-limit', () => ({
+      consumeRateLimit: vi.fn().mockResolvedValue({
+        allowed: true,
+        limit: 5,
+        remaining: 4,
+        resetAt: new Date(Date.now() + 60_000).toISOString(),
+      }),
+      getClientIp: vi.fn().mockReturnValue('test-client'),
+      rateLimitResponse: vi.fn(),
+    }))
   })
 
   it('assigns admin to the first user', async () => {
@@ -111,6 +123,23 @@ describe('POST /api/signup', () => {
       password: 'hashed-password',
       roleId: 'role-admin',
     })
+  })
+
+  it('rejects an invalid secret for the first administrator', async () => {
+    const mockDb = createMockDb({ hasExistingUser: false })
+
+    vi.doMock('@/db', () => ({ db: mockDb.db }))
+    vi.doMock('bcryptjs', () => ({
+      default: { hash: vi.fn().mockResolvedValue('hashed-password') },
+    }))
+
+    const { POST } = await import('@/app/api/signup/route')
+    const response = await POST(
+      signupRequest({ setupSecret: 'wrong-secret' }) as unknown as Parameters<typeof POST>[0],
+    )
+
+    expect(response.status).toBe(403)
+    expect(mockDb.getInsertedUser()).toBeNull()
   })
 
   it('normalizes uppercase usernames before creating an account', async () => {

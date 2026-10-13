@@ -204,7 +204,7 @@ async function saveEventFromForm(formData: FormData) {
   } else if (existingPublishedAt) {
     await emitEventNotification(eventId, NOTIFICATION_EVENTS.calendarEventUpdated, user.id, true)
   } else if (values.status === 'new') {
-    await publishEventById(eventId)
+    await publishEventByIdAs(eventId, user.id)
   }
 
   revalidatePath('/calendar')
@@ -212,13 +212,18 @@ async function saveEventFromForm(formData: FormData) {
 }
 
 export async function publishEventById(id: string) {
+  const user = await requireFullAccess()
+  return publishEventByIdAs(id, user.id)
+}
+
+async function publishEventByIdAs(id: string, actorUserId: string) {
   const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, id)).limit(1)
 
   if (!event) throw new Error('Event not found.')
   if (event.status !== 'new' && event.status !== 'published') return event
   if (event.publishedAt) return event
 
-  await emitEventNotification(event.id, NOTIFICATION_EVENTS.calendarEventCreated, event.createdById)
+  await emitEventNotification(event.id, NOTIFICATION_EVENTS.calendarEventCreated, actorUserId)
 
   const [updated] = await db
     .update(eventsTable)

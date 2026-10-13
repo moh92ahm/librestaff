@@ -168,12 +168,6 @@ export function dateToMonthKey(value?: string | null) {
   return value.slice(0, 7)
 }
 
-function formatDateForKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate(),
-  ).padStart(2, '0')}`
-}
-
 export function addDaysToDate(value: string, days: number) {
   const date = new Date(`${value}T00:00:00.000Z`)
   date.setUTCDate(date.getUTCDate() + days)

@@ -111,7 +111,10 @@ export function AnnouncementCompose({
   )
   const editorRef = React.useRef<AnnouncementRichTextEditorHandle>(null)
   const titleRef = React.useRef<HTMLInputElement>(null)
-  const mentionOptions = mentionOptionsByChannel[selectedCategoryId] || []
+  const mentionOptions = React.useMemo(
+    () => mentionOptionsByChannel[selectedCategoryId] || [],
+    [mentionOptionsByChannel, selectedCategoryId],
+  )
 
   const resetForm = React.useCallback(() => {
     setTitle(announcement?.title || '')

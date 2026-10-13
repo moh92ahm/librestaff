@@ -68,12 +68,13 @@ export function NavUser({
     } catch (error) {
       console.error('Logout failed:', error)
     } finally {
-      window.location.href = '/login'
+      router.replace('/login')
+      router.refresh()
     }
   }
 
   const toProfile = () => {
-    window.location.href = '/me'
+    router.push('/me')
   }
 
   const handleLanguageChange = async (locale: AppLocale) => {

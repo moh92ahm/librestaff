@@ -203,7 +203,7 @@ export default async function EditPayrollSettingPage({ params }: EditPayrollSett
         />
       </>
     )
-  } catch (e) {
+  } catch (_error) {
     notFound()
   }
 }

@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/db'
-import { mediaTable } from '@/db/schema'
 import { getServerSession } from '@/lib/auth'
-import { eq } from 'drizzle-orm'
-import {
-  deleteStoredMedia,
-  documentMimeTypes,
-  imageMimeTypes,
-  saveUploadedMedia,
-} from '@/lib/media-storage'
+import { documentMimeTypes, imageMimeTypes, saveUploadedMedia } from '@/lib/media-storage'
 import { consumeRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { hasPermission } from '@/lib/permissions'
 
@@ -76,36 +68,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Remove uploaded file
-export async function DELETE(request: NextRequest) {
-  try {
-    const session = await getServerSession()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const fileId = searchParams.get('id')
-
-    if (!fileId) {
-      return NextResponse.json({ error: 'File ID required' }, { status: 400 })
-    }
-
-    // Get file info from database
-    const [media] = await db.select().from(mediaTable).where(eq(mediaTable.id, fileId)).limit(1)
-
-    if (!media) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 })
-    }
-
-    await deleteStoredMedia(media.storageKey)
-
-    // Delete from database
-    await db.delete(mediaTable).where(eq(mediaTable.id, fileId))
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Delete error:', error)
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
-  }
+// Media can only be deleted through a resource-specific endpoint that verifies
+// the caller may edit the record to which the file is attached.
+export async function DELETE(_request: NextRequest) {
+  return NextResponse.json(
+    { error: 'Delete media through its owning resource.' },
+    { status: 405, headers: { Allow: 'POST' } },
+  )
 }

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { expensePaymentsTable, expensesTable, usersTable } from '@/db/schema'
 import { requireAuth } from '@/lib/auth-guards'
@@ -10,7 +10,6 @@ import {
   calculateExpenseReportMonth,
   getCompletedMonthKeys,
   getExpenseGenerationDate,
-  toAmount,
   type ExpenseBillingCycle,
   type ExpensePaymentSource,
   type ExpensePaymentStatus,
@@ -47,7 +46,9 @@ function getReimbursableValues(formData: FormData) {
     formData.get('isReimbursable') === 'on' || formData.get('isReimbursable') === 'true'
   return {
     isReimbursable,
-    reimbursableEmployeeId: isReimbursable ? clean(formData.get('reimbursableEmployeeId')) || null : null,
+    reimbursableEmployeeId: isReimbursable
+      ? clean(formData.get('reimbursableEmployeeId')) || null
+      : null,
   }
 }
 
@@ -142,7 +143,8 @@ async function getExpensePaymentUpdateValues(
   existing: typeof expensePaymentsTable.$inferSelect,
 ) {
   const amount = Number(clean(formData.get('amount')) || 0)
-  const generationDate = normalizeDate(clean(formData.get('generationDate'))) || existing.generationDate
+  const generationDate =
+    normalizeDate(clean(formData.get('generationDate'))) || existing.generationDate
   const [year, month] = generationDate.split('-')
   const dueDate =
     existing.source === 'recurring'
@@ -253,7 +255,9 @@ export async function updateExpenseAction(formData: FormData) {
       category: updated.category,
       amount: updated.amount,
       type: updated.type,
-      generationDate: updated.startDate ? getExpenseGenerationDate(updated as any, updated.startDate.slice(0, 7)) : null,
+      generationDate: updated.startDate
+        ? getExpenseGenerationDate(updated as any, updated.startDate.slice(0, 7))
+        : null,
       linkUrl: '/expenses',
     },
   })

@@ -17,6 +17,9 @@ services:
     restart: unless-stopped
 
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ${CONTAINER_IMAGE:-librestaff}:${IMAGE_TAG:-latest}
     environment:
       PORT: 3000
@@ -26,7 +29,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-librestaff_user}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-librestaff_db}
       AUTH_SECRET: ${AUTH_SECRET:-${NEXTAUTH_SECRET:-}}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET:-}}
+      SETUP_SECRET: ${SETUP_SECRET:-}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-}
+      TRUST_PROXY_HEADERS: 'true'
       NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-}
       CRON_SECRET: ${CRON_SECRET:-}
       EMAIL_SETTINGS_ENCRYPTION_KEY: ${EMAIL_SETTINGS_ENCRYPTION_KEY:-}

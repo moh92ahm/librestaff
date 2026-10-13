@@ -9,6 +9,8 @@ import { normalizeUsername } from '@/lib/usernames'
 import { normalizePhoneNumber } from '@/lib/phone-numbers'
 import { normalizeDisplayText } from '@/lib/display-text'
 import { consumeRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import { createHash, timingSafeEqual } from 'crypto'
+import { MIN_PASSWORD_LENGTH } from '@/lib/password-policy'
 
 const optionalText = z
   .string()
@@ -27,7 +29,9 @@ const signupSchema = z
       .string()
       .transform(normalizeUsername)
       .refine((value) => value.length >= 3, 'Username must be at least 3 characters'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z
+      .string()
+      .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`),
     confirmPassword: z.string(),
     primaryPhone: z
       .string()
@@ -39,6 +43,7 @@ const signupSchema = z
     identityNumber: optionalText,
     address: optionalText,
     inviteToken: z.string().trim().optional(),
+    setupSecret: z.string().trim().max(1024).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -57,6 +62,17 @@ const defaultRoles = [
     description: 'Standard access - can view own profile, calendar, and announcements',
   },
 ] as const
+
+function setupSecretMatches(submittedSecret: string | undefined) {
+  const configuredSecret = process.env.SETUP_SECRET
+  if (!configuredSecret) throw new Error('SETUP_NOT_CONFIGURED')
+
+  const submittedHash = createHash('sha256')
+    .update(submittedSecret || '')
+    .digest()
+  const configuredHash = createHash('sha256').update(configuredSecret).digest()
+  return timingSafeEqual(submittedHash, configuredHash)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -109,6 +125,11 @@ export async function POST(req: NextRequest) {
 
       const existingUser = await tx.select({ id: usersTable.id }).from(usersTable).limit(1)
       const isFirstUser = existingUser.length === 0
+
+      if (isFirstUser && !setupSecretMatches(data.setupSecret)) {
+        throw new Error('SETUP_SECRET_INVALID')
+      }
+
       let roleName: string = 'admin'
       let roleId: string | null = null
       let inviteId: string | null = null
@@ -264,6 +285,14 @@ export async function POST(req: NextRequest) {
     }
 
     const inviteErrors: Record<string, { error: string; status: number }> = {
+      SETUP_NOT_CONFIGURED: {
+        error: 'Initial setup is disabled until SETUP_SECRET is configured',
+        status: 503,
+      },
+      SETUP_SECRET_INVALID: {
+        error: 'The setup secret is invalid',
+        status: 403,
+      },
       INVITE_REQUIRED: {
         error: 'A valid invite link is required to create an account',
         status: 403,

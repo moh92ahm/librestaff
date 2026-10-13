@@ -100,7 +100,7 @@ export async function saveAnnouncementFormAction(formData: FormData) {
   }
 
   if (clean(formData.get('intent')) === 'send') {
-    await sendAnnouncementById(announcementId)
+    await sendAnnouncementByIdForUser(announcementId, user)
   }
 
   revalidatePath('/announcements')
@@ -113,6 +113,14 @@ export async function sendAnnouncementAction(formData: FormData) {
 }
 
 export async function sendAnnouncementById(id: string) {
+  const user = await requireAuth()
+  return sendAnnouncementByIdForUser(id, user)
+}
+
+async function sendAnnouncementByIdForUser(
+  id: string,
+  user: Awaited<ReturnType<typeof requireAuth>>,
+) {
   const [announcement] = await db
     .select()
     .from(announcementsTable)
@@ -120,10 +128,14 @@ export async function sendAnnouncementById(id: string) {
     .limit(1)
 
   if (!announcement) throw new Error('Announcement not found.')
+  if (announcement.createdById !== user.id) {
+    throw new Error('Only the creator can send this announcement.')
+  }
   if (announcement.status === 'sent') return announcement
 
   const channel = await getAnnouncementChannelById(announcement.categoryId || '')
   if (!channel) throw new Error('Channel is required.')
+  await assertCanUseChannel(user, channel.id)
   const recipients = await resolveAnnouncementChannelRecipients(channel)
   const mentionRows = await db
     .select({

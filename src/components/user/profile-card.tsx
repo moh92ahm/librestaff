@@ -19,7 +19,7 @@ type User = InferSelectModel<typeof usersTable> & {
   } | null
 }
 import { formatDate } from '@/lib/date-utils'
-import { AtSign, BriefcaseBusiness, CalendarDays, IdCard, Mail, UserRound } from 'lucide-react'
+import { AtSign, BriefcaseBusiness, CalendarDays, IdCard, Mail } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 
 interface ProfileCardProps {

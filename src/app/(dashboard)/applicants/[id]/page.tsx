@@ -13,7 +13,7 @@ interface ApplicantPageProps {
 
 export default async function ApplicantPage({ params }: ApplicantPageProps) {
   const { id } = await params
-  const currentUser = await requirePermission('applicants', 'view')
+  await requirePermission('applicants', 'view')
 
   try {
     const applicant = await db.query.applicantsTable.findFirst({
@@ -27,7 +27,7 @@ export default async function ApplicantPage({ params }: ApplicantPageProps) {
       notFound()
     }
 
-    return <ApplicantDetail applicant={applicant} currentUser={currentUser} />
+    return <ApplicantDetail applicant={applicant} />
   } catch (error) {
     console.error('Error fetching applicant:', error)
     notFound()

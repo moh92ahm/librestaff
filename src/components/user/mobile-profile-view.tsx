@@ -141,7 +141,8 @@ export function MobileProfileView({
 
   const handleLogout = async () => {
     await logoutAction()
-    window.location.href = '/login'
+    router.replace('/login')
+    router.refresh()
   }
 
   if (activeSection) {

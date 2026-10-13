@@ -18,6 +18,7 @@ import { getNationalityOptions } from '@/lib/nationalities'
 import { normalizeUsername } from '@/lib/usernames'
 import { normalizePhoneNumber } from '@/lib/phone-numbers'
 import { normalizeDisplayTextInput } from '@/lib/display-text'
+import { MIN_PASSWORD_LENGTH } from '@/lib/password-policy'
 
 type ValidationKey =
   | 'fullNameRequired'
@@ -35,7 +36,7 @@ function createSignupSchema(t: (key: ValidationKey) => string) {
       fullName: z.string().min(1, t('fullNameRequired')),
       email: z.string().email(t('invalidEmail')),
       username: z.string().min(3, t('usernameMin')),
-      password: z.string().min(6, t('passwordMin')),
+      password: z.string().min(MIN_PASSWORD_LENGTH, t('passwordMin')),
       confirmPassword: z.string(),
       primaryPhone: z.string().min(1, t('phoneRequired')),
       birthDate: z.string().min(1, t('birthDateRequired')),
@@ -43,6 +44,7 @@ function createSignupSchema(t: (key: ValidationKey) => string) {
       nationality: z.string().optional(),
       identityNumber: z.string().optional(),
       address: z.string().optional(),
+      setupSecret: z.string().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t('passwordsDoNotMatch'),
@@ -56,12 +58,14 @@ interface UserSignupFormProps {
   initialEmail?: string
   inviteToken?: string
   emailReadOnly?: boolean
+  setupMode?: boolean
 }
 
 export function UserSignupForm({
   initialEmail = '',
   inviteToken,
   emailReadOnly,
+  setupMode = false,
 }: UserSignupFormProps) {
   const t = useTranslations('auth')
   const validationT = useTranslations('validation')
@@ -93,6 +97,7 @@ export function UserSignupForm({
       nationality: '',
       identityNumber: '',
       address: '',
+      setupSecret: '',
     },
   })
 
@@ -107,6 +112,7 @@ export function UserSignupForm({
         body: JSON.stringify({
           ...data,
           ...(inviteToken && { inviteToken }),
+          ...(!setupMode && { setupSecret: undefined }),
         }),
       })
 
@@ -220,6 +226,16 @@ export function UserSignupForm({
             register={register}
             error={errors.confirmPassword?.message}
           />
+
+          {setupMode ? (
+            <InputField
+              label={`${t('setupSecret')} *`}
+              name="setupSecret"
+              type="password"
+              register={register}
+              error={errors.setupSecret?.message}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

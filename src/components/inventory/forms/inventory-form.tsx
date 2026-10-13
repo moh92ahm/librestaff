@@ -183,12 +183,12 @@ export function InventoryForm({
     } else {
       if (holder === '__none__') setValue('holder', '', { shouldValidate: true })
     }
-  }, [status])
+  }, [holder, setValue, status])
 
   const holderOptions: Option[] = React.useMemo(() => {
     if (status === 'inUse') return holders
     return [{ value: '__none__', label: t('unassigned') }, ...holders]
-  }, [holders, status])
+  }, [holders, status, t])
 
   return (
     <div className="min-h-screen bg-background">

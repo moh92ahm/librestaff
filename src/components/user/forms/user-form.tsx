@@ -92,6 +92,8 @@ interface UserFormProps {
   departments?: Array<{ value: string; label: string }>
   roles?: Array<{ value: string; label: string; name?: string }>
   managerOptions?: Array<{ value: string; label: string }>
+  canEditAdministrativeFields?: boolean
+  canEditRole?: boolean
 }
 
 export function UserForm({
@@ -103,6 +105,8 @@ export function UserForm({
   departments = [],
   roles = [],
   managerOptions = [],
+  canEditAdministrativeFields = true,
+  canEditRole = true,
 }: UserFormProps) {
   const t = useTranslations('users')
   const common = useTranslations('common')
@@ -312,39 +316,45 @@ export function UserForm({
               <FieldError message={errors.fullName?.message as string | undefined} />
             </EditRow>
 
-            <EditRow title={t('jobTitle')} description={t('editHelp.jobTitle')}>
-              <Input
-                id="jobTitle"
-                {...jobTitleField}
-                onChange={(event) => {
-                  event.target.value = normalizeDisplayTextInput(event.target.value)
-                  jobTitleField.onChange(event)
-                }}
-              />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('jobTitle')} description={t('editHelp.jobTitle')}>
+                <Input
+                  id="jobTitle"
+                  {...jobTitleField}
+                  onChange={(event) => {
+                    event.target.value = normalizeDisplayTextInput(event.target.value)
+                    jobTitleField.onChange(event)
+                  }}
+                />
+              </EditRow>
+            ) : null}
 
-            <EditRow title={t('email')} description={t('editHelp.email')}>
-              <Input
-                id="email"
-                type="email"
-                className={errors.email ? 'border-red-500' : ''}
-                {...register('email')}
-              />
-              <FieldError message={errors.email?.message as string | undefined} />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('email')} description={t('editHelp.email')}>
+                <Input
+                  id="email"
+                  type="email"
+                  className={errors.email ? 'border-red-500' : ''}
+                  {...register('email')}
+                />
+                <FieldError message={errors.email?.message as string | undefined} />
+              </EditRow>
+            ) : null}
 
-            <EditRow title={t('username')} description={t('editHelp.username')}>
-              <Input
-                id="username"
-                className={errors.username ? 'border-red-500' : ''}
-                {...usernameField}
-                onChange={(event) => {
-                  event.target.value = normalizeUsername(event.target.value)
-                  usernameField.onChange(event)
-                }}
-              />
-              <FieldError message={errors.username?.message as string | undefined} />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('username')} description={t('editHelp.username')}>
+                <Input
+                  id="username"
+                  className={errors.username ? 'border-red-500' : ''}
+                  {...usernameField}
+                  onChange={(event) => {
+                    event.target.value = normalizeUsername(event.target.value)
+                    usernameField.onChange(event)
+                  }}
+                />
+                <FieldError message={errors.username?.message as string | undefined} />
+              </EditRow>
+            ) : null}
 
             {isCreate ? (
               <>
@@ -373,73 +383,80 @@ export function UserForm({
             ) : null}
           </EditSection>
 
-          <EditSection title={t('editSections.organization')}>
-            <EditRow title={t('department')} description={t('editHelp.department')}>
-              <SelectField
-                control={control}
-                name={'departmentId'}
-                placeholder={t('selectDepartment')}
-                options={departments}
-                error={errors.departmentId?.message as string | undefined}
-              />
-            </EditRow>
+          {canEditAdministrativeFields ? (
+            <EditSection title={t('editSections.organization')}>
+              <EditRow title={t('department')} description={t('editHelp.department')}>
+                <SelectField
+                  control={control}
+                  name={'departmentId'}
+                  placeholder={t('selectDepartment')}
+                  options={departments}
+                  error={errors.departmentId?.message as string | undefined}
+                />
+              </EditRow>
 
-            <EditRow title={t('dottedLineManagers')} description={t('editHelp.dottedLineManagers')}>
-              <ComboboxMultiSelect
-                control={control}
-                name={'dottedManagers'}
-                placeholder={t('selectDottedLineManagers')}
-                searchPlaceholder={t('searchManagers')}
-                emptyMessage={t('noManagersFound')}
-                options={dottedManagerOptions}
-                error={errors.dottedManagers?.message as string | undefined}
-              />
-            </EditRow>
+              <EditRow
+                title={t('dottedLineManagers')}
+                description={t('editHelp.dottedLineManagers')}
+              >
+                <ComboboxMultiSelect
+                  control={control}
+                  name={'dottedManagers'}
+                  placeholder={t('selectDottedLineManagers')}
+                  searchPlaceholder={t('searchManagers')}
+                  emptyMessage={t('noManagersFound')}
+                  options={dottedManagerOptions}
+                  error={errors.dottedManagers?.message as string | undefined}
+                />
+              </EditRow>
 
-            <EditRow title={t('role')} description={t('editHelp.role')}>
-              <SelectField
-                control={control}
-                name={'role'}
-                placeholder={t('selectRole')}
-                options={localizedRoles}
-                error={errors.role?.message as string | undefined}
-              />
-            </EditRow>
-
-            <EditRow title={t('personType')} description={t('editHelp.personType')}>
-              <SelectField
-                control={control}
-                name={'personType'}
-                placeholder={t('selectPersonType')}
-                options={personTypeOptions}
-                error={errors.personType?.message as string | undefined}
-              />
-            </EditRow>
-
-            <EditRow
-              title={t('directoryAndHeadcount')}
-              description={t('editHelp.directoryAndHeadcount')}
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 rounded border-input"
-                    {...register('visibleInTeamDirectory')}
+              {canEditRole ? (
+                <EditRow title={t('role')} description={t('editHelp.role')}>
+                  <SelectField
+                    control={control}
+                    name={'role'}
+                    placeholder={t('selectRole')}
+                    options={localizedRoles}
+                    error={errors.role?.message as string | undefined}
                   />
-                  {t('visibleInTeamMembers')}
-                </label>
-                <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 rounded border-input"
-                    {...register('includeInHeadcount')}
-                  />
-                  {t('includeInHeadcount')}
-                </label>
-              </div>
-            </EditRow>
-          </EditSection>
+                </EditRow>
+              ) : null}
+
+              <EditRow title={t('personType')} description={t('editHelp.personType')}>
+                <SelectField
+                  control={control}
+                  name={'personType'}
+                  placeholder={t('selectPersonType')}
+                  options={personTypeOptions}
+                  error={errors.personType?.message as string | undefined}
+                />
+              </EditRow>
+
+              <EditRow
+                title={t('directoryAndHeadcount')}
+                description={t('editHelp.directoryAndHeadcount')}
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-input"
+                      {...register('visibleInTeamDirectory')}
+                    />
+                    {t('visibleInTeamMembers')}
+                  </label>
+                  <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-input"
+                      {...register('includeInHeadcount')}
+                    />
+                    {t('includeInHeadcount')}
+                  </label>
+                </div>
+              </EditRow>
+            </EditSection>
+          ) : null}
 
           <EditSection title={t('editSections.dates')}>
             <EditRow title={t('birthDate')} description={t('editHelp.birthDate')}>
@@ -458,28 +475,30 @@ export function UserForm({
               />
             </EditRow>
 
-            <EditRow title={t('joinedAtDate')} description={t('editHelp.joinedAt')}>
-              <Controller
-                control={control}
-                name="joinedAt"
-                render={({ field }) => (
-                  <JoinedDatePicker
-                    label={t('joinedAtDate')}
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      if (employmentStartFollowsJoinedAt) {
-                        setValue('employmentStartDate', value, {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }
-                    }}
-                    name="joinedAt"
-                  />
-                )}
-              />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('joinedAtDate')} description={t('editHelp.joinedAt')}>
+                <Controller
+                  control={control}
+                  name="joinedAt"
+                  render={({ field }) => (
+                    <JoinedDatePicker
+                      label={t('joinedAtDate')}
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value)
+                        if (employmentStartFollowsJoinedAt) {
+                          setValue('employmentStartDate', value, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                      }}
+                      name="joinedAt"
+                    />
+                  )}
+                />
+              </EditRow>
+            ) : null}
           </EditSection>
 
           <EditSection title={profileT('employmentStatus')}>
@@ -497,44 +516,50 @@ export function UserForm({
               <Input id="identityNumber" {...register('identityNumber')} />
             </EditRow>
 
-            <EditRow title={t('employmentType')} description={t('editHelp.employmentType')}>
-              <SelectField
-                control={control}
-                name={'employmentType'}
-                placeholder={t('selectEmploymentType')}
-                options={[
-                  { label: enumT('employmentType.citizen'), value: 'citizen' },
-                  { label: enumT('employmentType.workPermit'), value: 'workPermit' },
-                  { label: enumT('employmentType.other'), value: 'other' },
-                ]}
-              />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('employmentType')} description={t('editHelp.employmentType')}>
+                <SelectField
+                  control={control}
+                  name={'employmentType'}
+                  placeholder={t('selectEmploymentType')}
+                  options={[
+                    { label: enumT('employmentType.citizen'), value: 'citizen' },
+                    { label: enumT('employmentType.workPermit'), value: 'workPermit' },
+                    { label: enumT('employmentType.other'), value: 'other' },
+                  ]}
+                />
+              </EditRow>
+            ) : null}
 
-            <EditRow
-              title={profileT('officialStartDate')}
-              description={t('editHelp.officialStartDate')}
-            >
-              <Controller
-                control={control}
-                name="employmentStartDate"
-                render={({ field }) => (
-                  <OfficialStartDatePicker
-                    label={profileT('officialStartDate')}
-                    value={field.value}
-                    onValueChange={(value) => {
-                      setEmploymentStartFollowsJoinedAt(false)
-                      field.onChange(value)
-                    }}
-                    name="employmentStartDate"
-                    error={errors.employmentStartDate?.message as string | undefined}
-                  />
-                )}
-              />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow
+                title={profileT('officialStartDate')}
+                description={t('editHelp.officialStartDate')}
+              >
+                <Controller
+                  control={control}
+                  name="employmentStartDate"
+                  render={({ field }) => (
+                    <OfficialStartDatePicker
+                      label={profileT('officialStartDate')}
+                      value={field.value}
+                      onValueChange={(value) => {
+                        setEmploymentStartFollowsJoinedAt(false)
+                        field.onChange(value)
+                      }}
+                      name="employmentStartDate"
+                      error={errors.employmentStartDate?.message as string | undefined}
+                    />
+                  )}
+                />
+              </EditRow>
+            ) : null}
 
-            <EditRow title={t('employmentNote')} description={t('editHelp.employmentNote')}>
-              <Textarea id="employmentNote" rows={4} {...register('employmentNote')} />
-            </EditRow>
+            {canEditAdministrativeFields ? (
+              <EditRow title={t('employmentNote')} description={t('editHelp.employmentNote')}>
+                <Textarea id="employmentNote" rows={4} {...register('employmentNote')} />
+              </EditRow>
+            ) : null}
           </EditSection>
 
           <EditSection title={profileT('contactInformation')}>

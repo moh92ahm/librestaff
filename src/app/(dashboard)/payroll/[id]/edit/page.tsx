@@ -84,7 +84,7 @@ export default async function EditPayrollPage({ params }: EditPayrollPageProps) 
         />
       </>
     )
-  } catch (e) {
+  } catch (_error) {
     notFound()
   }
 }
@@ -127,7 +127,9 @@ async function handleUpdate(payrollId: string, formData: FormData) {
       totalAmount: String(totalAmount),
       updatedAt,
     })
-    .where(and(eq(payrollTable.id, payrollId), eq(payrollTable.employeeId, currentPayroll.employeeId)))
+    .where(
+      and(eq(payrollTable.id, payrollId), eq(payrollTable.employeeId, currentPayroll.employeeId)),
+    )
     .returning()
 
   if (updatedPayroll) {

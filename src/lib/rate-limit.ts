@@ -23,9 +23,14 @@ function hashKey(scope: string, key: string) {
 }
 
 export function getClientIp(request: Request | NextRequest) {
+  if (process.env.TRUST_PROXY_HEADERS !== 'true') return 'unknown'
+
+  const realIp = request.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return request.headers.get('x-real-ip') || 'unknown'
+  if (forwarded) return forwarded.split(',').at(-1)?.trim() || 'unknown'
+  return 'unknown'
 }
 
 export async function consumeRateLimit({
@@ -72,9 +77,9 @@ export async function consumeRateLimit({
     }
   } catch (error) {
     if (process.env.NODE_ENV !== 'test') {
-      console.warn('Rate limit check failed open:', error)
+      console.warn('Rate limit check failed closed:', error)
     }
-    return { allowed: true, limit, remaining: limit, resetAt: expiresAt }
+    return { allowed: false, limit, remaining: 0, resetAt: expiresAt }
   }
 }
 

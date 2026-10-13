@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Download, FileText, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 
 export type MultiFileUploadValue =
   | File
@@ -53,28 +54,8 @@ export function MultiFileUpload({
 }: MultiFileUploadProps) {
   const commonT = useTranslations('common')
   const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const objectUrlCache = React.useRef(new Map<File, string>())
   const resolvedPlaceholder = placeholder || commonT('uploadFiles')
   const resolvedTriggerLabel = triggerLabel || commonT('attachFile')
-
-  React.useEffect(() => {
-    const currentFiles = new Set(value.filter((file): file is File => file instanceof File))
-    for (const [file, url] of objectUrlCache.current.entries()) {
-      if (!currentFiles.has(file)) {
-        URL.revokeObjectURL(url)
-        objectUrlCache.current.delete(file)
-      }
-    }
-  }, [value])
-
-  React.useEffect(() => {
-    return () => {
-      for (const url of objectUrlCache.current.values()) {
-        URL.revokeObjectURL(url)
-      }
-      objectUrlCache.current.clear()
-    }
-  }, [])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -136,12 +117,9 @@ export function MultiFileUpload({
   }
 
   const getFileUrl = (file: MultiFileUploadValue): string | null => {
-    if (file instanceof File) {
-      if (!objectUrlCache.current.has(file)) {
-        objectUrlCache.current.set(file, URL.createObjectURL(file))
-      }
-      return objectUrlCache.current.get(file) || null
-    }
+    // Local File objects are submitted directly and intentionally do not get
+    // render-time object URLs. Persisted media already provides a stable URL.
+    if (file instanceof File) return null
     if (typeof file === 'object' && file !== null && 'url' in file && file.url) {
       return file.url
     }
@@ -158,13 +136,22 @@ export function MultiFileUpload({
     return /\.(png|jpe?g|webp|gif|avif)$/i.test(filename)
   }
 
-  const FilePreview = ({ file, compact = false }: { file: MultiFileUploadValue; compact?: boolean }) => {
+  const FilePreview = ({
+    file,
+    compact = false,
+  }: {
+    file: MultiFileUploadValue
+    compact?: boolean
+  }) => {
     const url = getFileUrl(file)
     if (url && isImageFile(file)) {
       return (
-        <img
+        <Image
           src={url}
           alt={getFileName(file)}
+          width={compact ? 20 : 40}
+          height={compact ? 20 : 40}
+          unoptimized
           className={cn(
             'shrink-0 rounded border bg-background object-cover',
             compact ? 'size-5' : 'size-10',
@@ -175,10 +162,7 @@ export function MultiFileUpload({
 
     return (
       <FileText
-        className={cn(
-          'shrink-0 text-muted-foreground',
-          compact ? 'h-3.5 w-3.5' : 'h-5 w-5',
-        )}
+        className={cn('shrink-0 text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-5 w-5')}
       />
     )
   }

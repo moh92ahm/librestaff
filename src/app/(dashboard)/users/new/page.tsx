@@ -23,6 +23,7 @@ import { normalizePhoneNumber } from '@/lib/phone-numbers'
 import { normalizeDisplayText } from '@/lib/display-text'
 import { documentMimeTypes, imageMimeTypes, saveUploadedMedia } from '@/lib/media-storage'
 import { writeMemberActivityLog } from '@/lib/member-activity'
+import { assertPasswordLength } from '@/lib/password-policy'
 
 export const metadata: Metadata = {
   title: 'New User',
@@ -74,6 +75,7 @@ export default async function NewUserPage() {
     const confirmPassword = String(formData.get('confirmPassword') || '')
     if (!email) throw new Error('Email is required')
     if (!username || !password) throw new Error('Username and password are required')
+    assertPasswordLength(password)
     if (password !== confirmPassword) throw new Error('Passwords do not match')
 
     // Normalize optional fields

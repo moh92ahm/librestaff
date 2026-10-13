@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function NewInventoryPage() {
   await requirePermission('inventory', 'create')
 
-  const users = await getInventoryHolderOptions()
+  const users = await getInventoryHolderOptions('create')
 
   return (
     <>

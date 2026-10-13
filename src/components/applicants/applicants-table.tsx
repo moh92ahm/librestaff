@@ -11,7 +11,7 @@ import { Button } from '../ui/button'
 import Link from 'next/link'
 import { DataTable } from '../data-table'
 import { formatDate } from '@/lib/date-utils'
-import { FileText, ExternalLink } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 interface ApplicantsTableProps {

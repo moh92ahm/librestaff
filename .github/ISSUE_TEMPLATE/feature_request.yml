@@ -1,0 +1,71 @@
+name: Feature request
+description: Propose an improvement to LibreStaff
+title: '[Feature]: '
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Consider starting in GitHub Discussions if the idea needs exploration. Do not include confidential company processes or data.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user need or limitation, independently of a particular implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the desired workflow and who would use it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Employees and organization
+        - Authentication and permissions
+        - Leave and calendar
+        - Payroll and expenses
+        - Inventory
+        - Applicants
+        - Announcements and notifications
+        - Settings and deployment
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches.
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Security, privacy, and compatibility impact
+      description: Mention new data, permissions, migrations, integrations, or breaking changes.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context or sanitized mockups
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: This request contains no secrets, production data, or identifiable personal information.
+          required: true

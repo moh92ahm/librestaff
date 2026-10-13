@@ -1,261 +1,339 @@
 # LibreStaff
 
-LibreStaff is an employee management system built with Next.js, NextAuth, Drizzle ORM, and PostgreSQL.
+LibreStaff is a self-hosted employee operations application built with Next.js, PostgreSQL, and
+Drizzle ORM. It combines employee records, organization structure, leave, payroll, inventory,
+applicants, announcements, calendars, notifications, and configurable permissions in one app.
+
+Licensed under [AGPL-3.0-only](LICENSE).
 
 ## Features
 
-- User and employee profile management
-- Department and role assignment
-- Public applicant intake form with CV upload
-- Inventory assignment and status tracking
-- Leave request tracking
-- Payroll settings and generated payroll records
-- Role-based access control for admins, managers, and employees
-- Responsive dashboard UI built with Tailwind CSS and shadcn/Radix-style components
+- Employee profiles, documents, employment details, and activity history
+- Departments, reporting hierarchy, dotted-line managers, and organization chart
+- Administrator, member, and custom roles with resource/action permission scopes
+- Invitation-only account creation after protected first-time setup
+- Leave requests, approval scopes, calendars, and leave policy settings
+- Payroll settings, payroll generation, additional payments, and expense reporting
+- Inventory assignment, status history, images, and employee activity
+- Public applicant intake with private CV storage and applicant management
+- Announcements, channels, mentions, attachments, comments, and targeted events
+- In-app and email notification workflows
+- Company branding, languages, themes, SMTP settings, and scheduled jobs
+- Responsive desktop and mobile interfaces
 
-## Tech Stack
+## Screenshots
 
-- Framework: Next.js 16 with App Router
-- UI: React 19, Tailwind CSS 4, Radix UI primitives, shadcn-style components
-- Authentication: NextAuth v5 credentials provider
-- Authorization: simple RBAC with `admin`, `manager`, and `employee` roles
-- Database: PostgreSQL
-- ORM and migrations: Drizzle ORM and Drizzle Kit
-- Forms and validation: React Hook Form and Zod where used
-- Testing: Vitest for integration tests and Playwright for browser tests
-- Deployment: Docker Compose, nginx, and PostgreSQL
+Screenshots are intentionally not committed yet because LibreStaff starts with an empty database and
+no demo seed data. Maintainers can add sanitized screenshots under `docs/screenshots/` after creating
+a non-production demo workspace. Never capture real employee or applicant information.
 
-## Project Structure
+## Technology
 
-- `src/app`: App Router pages, layouts, route groups, and API routes
-- `src/app/(dashboard)`: admin and manager dashboard routes
-- `src/app/(employee)`: employee portal routes
-- `src/app/(public)`: public routes such as `/apply`
-- `src/app/api`: API route handlers
-- `src/auth.ts`: NextAuth configuration
-- `proxy.ts`: route protection and role-based redirects
-- `src/db`: Drizzle database client and schema exports
-- `src/db/schema`: domain schema files for users, roles, departments, applicants, inventory, leaves, media, and payroll
-- `src/lib/actions`: server actions for authenticated mutations and dashboard data
-- `src/lib/auth.ts`: session helper functions
-- `src/lib/auth-guards.ts`: page/API auth guards and response helpers
-- `src/lib/rbac.ts`: role helper functions
-- `src/components`: reusable UI primitives and domain components
-- `drizzle`: generated Drizzle migrations and metadata
-- `tests`: Vitest integration tests and Playwright E2E tests
+- Next.js 16 App Router and React 19
+- NextAuth v5 credentials authentication
+- PostgreSQL with Drizzle ORM and Drizzle Kit migrations
+- Tailwind CSS 4 and Radix-based UI components
+- React Hook Form and Zod
+- Vitest integration tests and Playwright browser tests
+- Optional Docker Compose and Nginx deployment
 
-## Local Development
+## Requirements
 
-1. Install dependencies:
+- Node.js 20.19 or newer
+- pnpm 9 or 10
+- PostgreSQL 15 or newer
+
+## Quick Start
+
+1. Install dependencies and create the local environment file:
 
    ```bash
    pnpm install
-   ```
-
-2. Copy the example environment file and set your secrets:
-
-   ```bash
    cp .env.example .env
    ```
 
-3. Make sure `.env` contains a PostgreSQL connection string:
+2. Set at least these values in `.env`:
 
-   ```bash
+   ```env
    DATABASE_URL=postgresql://librestaff_user:librestaff_pass@127.0.0.1:5432/librestaff_db
-   NEXTAUTH_SECRET=your-secret-key-here-min-32-chars
+   NEXTAUTH_SECRET=replace-with-a-long-random-secret
+   SETUP_SECRET=replace-with-a-different-long-random-secret
    NEXTAUTH_URL=http://localhost:3000
+   EMAIL_SETTINGS_ENCRYPTION_KEY=replace-with-another-random-secret
    ```
 
-4. Start PostgreSQL. You can use the included Compose file:
+   Generate secrets with `openssl rand -base64 32`.
+
+3. Start PostgreSQL, apply the schema, and run LibreStaff:
 
    ```bash
    docker compose up -d db
-   ```
-
-5. Apply the database schema:
-
-   ```bash
    pnpm db:push
-   ```
-
-6. Start the app:
-
-   ```bash
    pnpm dev
    ```
 
-7. Open `http://localhost:3000`.
+4. Open `http://localhost:3000`. An empty installation redirects to `/setup`. Enter the configured
+   `SETUP_SECRET` and create the first administrator account.
 
-## Database Commands
+After setup, public signup is closed. Administrators create time-limited, single-use invitations
+that are bound to a recipient email address and selected role.
 
-- `pnpm db:push`: push the current Drizzle schema to the database
-- `pnpm db:migrate`: run generated Drizzle migrations
-- `pnpm db:studio`: open Drizzle Studio
+## Configuration
 
-Use `db:push` for local iteration. Use generated migrations and `db:migrate` for deployment environments.
+The complete template is in [.env.example](.env.example). Important values include:
 
-## Authentication And Roles
+| Variable                        | Purpose                                             |
+| ------------------------------- | --------------------------------------------------- |
+| `DATABASE_URL`                  | PostgreSQL connection string                        |
+| `NEXTAUTH_SECRET`               | Signs and encrypts authentication data              |
+| `NEXTAUTH_URL`                  | Canonical application URL                           |
+| `SETUP_SECRET`                  | Authorizes creation of the first administrator      |
+| `EMAIL_SETTINGS_ENCRYPTION_KEY` | Encrypts SMTP credentials stored in PostgreSQL      |
+| `CRON_SECRET`                   | Protects scheduled-job endpoints                    |
+| `MEDIA_STORAGE_DIR`             | Persistent directory for private uploads            |
+| `MAX_FILE_SIZE`                 | Maximum upload size in bytes                        |
+| `TRUST_PROXY_HEADERS`           | Trust client-IP headers only behind a trusted proxy |
 
-Authentication uses NextAuth credentials login. Users can sign in with email or username. Passwords are verified with `bcryptjs`.
+Use a different random value for every secret. Do not commit `.env` files.
 
-The first account is a bootstrap administrator account. When the users table is empty, `/login`
-redirects to `/signup` and the submitted account is assigned the `admin` role. After that,
-signup is invite-only: admins generate a one-time invite from the Users page, the recipient opens
-`/signup?token=...`, and the invite is locked to that email address and selected role.
+## Authentication and Authorization
 
-Invite emails use the admin-managed SMTP settings at `/settings/email`. Configure Google
-Workspace SMTP relay, generic SMTP, or username/password SMTP in the app, then send a test email
-and enable sending. SMTP values are not read from deployment environment variables.
+- `admin` has full access and is the only role that can assign roles.
+- `member` has standard own-profile access.
+- Custom roles receive explicit resource/action scopes.
+- Department management is assigned independently from access roles.
+- Non-admin users cannot promote themselves or edit their own administrative employment fields.
+- Disabled users, disabled roles, and role changes are refreshed from the database on authenticated
+  requests rather than remaining valid in a stale session.
 
-The deployment environment must include `EMAIL_SETTINGS_ENCRYPTION_KEY` so saved SMTP secrets can
-be encrypted at rest. Generate it with `openssl rand -base64 32`.
+The initial setup account is protected from accidental removal or demotion. Passwords must contain
+at least 15 characters.
 
-For Google Workspace SMTP relay, configure Google Admin to allow the production server IP, then use
-these values in `/settings/email`: host `smtp-relay.gmail.com`, port `587`, TLS mode `STARTTLS`,
-authentication `No authentication`, and a sender such as `no-reply@example.com`.
-The invite token should remain server-generated, stored only as a hash, single-use, and
-time-limited regardless of delivery method.
+## Email
 
-The role model is intentionally simple:
+SMTP settings are managed inside LibreStaff at `/settings/email`. The app supports generic SMTP,
+authenticated SMTP, and relay configurations. Test the configuration before enabling delivery.
 
-- `admin`: full dashboard access
-- `manager`: full dashboard access
-- `employee`: employee portal/profile access
+`EMAIL_SETTINGS_ENCRYPTION_KEY` must be present in every application instance that reads the saved
+SMTP credentials. Changing it after saving SMTP settings makes the stored secret unreadable.
 
-`proxy.ts` performs request-level protection and redirects users to the correct area based on their role.
+## Media Storage
 
-## Public Application Flow
+Uploads are stored on the server filesystem under `MEDIA_STORAGE_DIR`, with metadata in PostgreSQL.
+Private files are served through permission-aware media routes.
 
-Applicants use `/apply` to submit personal details and a CV. The API route at `POST /api/apply` validates the request, stores the CV in `public/media`, stores media metadata in PostgreSQL, and creates an applicant record.
+The media directory must be persistent and shared by every application instance. Back up PostgreSQL
+and the media directory together. Database-only backups do not include uploaded documents.
 
-Authenticated uploads use `POST /api/upload` and `DELETE /api/upload`.
+### Important Vercel limitation
 
-## Docker
+Vercel functions have an ephemeral filesystem. The current filesystem media backend therefore does
+not provide durable uploads on Vercel. Before using Vercel for a real deployment, implement an object
+storage backend such as S3-compatible storage and keep media private with signed or authorized reads.
+Without that adaptation, use a host with a persistent volume or the included Docker deployment.
 
-Local development is normally run without Docker:
+## Docker Deployment
+
+The Docker setup is optional and consists of PostgreSQL, the app, a migration job, a scheduler, and
+Nginx. It persists database and media data in named volumes. The full procedure, including local
+builds, published images, TLS, backups, and upgrades, is in the
+[Docker Compose deployment guide](docs/deployment/docker.md).
+
+1. Copy `.env.example` to a server-side `.env` and replace every placeholder.
+2. Set `NGINX_SERVER_NAME` and `NGINX_CERT_NAME`.
+3. Build the image and run migrations:
+
+   ```bash
+   docker compose build app
+   docker compose run --rm migrate
+   ```
+
+4. Start or update the stack:
+
+   ```bash
+   docker compose up -d --remove-orphans
+   ```
+
+The included Nginx configuration overwrites forwarded client-IP headers, and Compose enables
+`TRUST_PROXY_HEADERS` for that trusted path. Do not expose the app container directly while relying
+on those headers.
+
+Tagged releases also publish `ghcr.io/moh92ahm/librestaff`. Pin `CONTAINER_IMAGE` and `IMAGE_TAG`
+to a release if you prefer a registry image over building from source.
+
+## Deploying on Another Next.js Host
+
+LibreStaff can run on any platform that provides:
+
+- A long-running Node.js 20.19+ process
+- PostgreSQL
+- A persistent filesystem mounted at `MEDIA_STORAGE_DIR`, or a custom object-storage implementation
+- A way to invoke migrations before the new application version starts
+- A scheduler or external cron service for optional background jobs
+
+Typical commands are:
 
 ```bash
-pnpm dev
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm build
+pnpm start
 ```
 
-The included `docker-compose.yml` is an optional self-hosting setup. Environment-specific values live in the server's `.env` file. You may instead deploy the application to Vercel or another platform that supports Next.js and PostgreSQL.
+Do not run multiple application replicas with separate local media directories.
 
-Run Drizzle migrations in a deployed environment:
+See the [deployment guide](docs/deployment/README.md) for Docker Compose, a direct Node.js VPS,
+Railway, Render, Fly.io, and Vercel-specific guidance. The provider recipes are intentionally
+optional; LibreStaff does not automatically deploy to or modify anyone's infrastructure.
+
+## Continuous Integration and Releases
+
+Pull requests and pushes to `main` run lint, integration tests, and a production build in GitHub
+Actions. CI validates the repository only; it never deploys an installation.
+
+Pushing a semantic version tag such as `v1.0.0` builds a multi-architecture container and publishes
+release tags to GitHub Container Registry. Dependabot checks pnpm dependencies, GitHub Actions, and
+Docker base images weekly. Review and merge its pull requests like any other code change.
+
+## Database and Migrations
 
 ```bash
-docker compose run --rm migrate
+pnpm db:push       # local schema iteration
+pnpm db:migrate    # apply committed migrations
+pnpm db:studio     # open Drizzle Studio
 ```
 
-Start or update the deployed stack:
+Use `db:push` for local development. Use committed migrations and `db:migrate` for shared or
+production databases.
+
+## Scheduled Jobs
+
+The included scheduler service calls protected `/api/jobs/*` routes. External schedulers may call
+the same routes with:
 
 ```bash
-docker compose up -d --remove-orphans
+curl -fsS \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  https://your-domain.example/api/jobs/birthday-notifications
 ```
 
-## Deployment
+The secret is accepted only through the `Authorization: Bearer` header. Available jobs include
+birthday notifications, calendar workflow events, recurring expense payments, payroll generation,
+and notification delivery. Review `scripts/cron-scheduler.mjs` for the bundled schedule.
 
-The repository includes:
+## Updating an Installation
 
-- `Dockerfile` for the production app image
-- `docker-compose.yml` for optional self-hosting
-- `nginx.conf` as a Docker nginx template driven by environment variables
+Before every upgrade:
 
-The intended deployment flow is:
+1. Read the release notes.
+2. Back up PostgreSQL and `MEDIA_STORAGE_DIR` together.
+3. Install the new dependency lockfile.
+4. Apply migrations before starting the new app version.
+5. Run the test and build checks appropriate for your deployment.
 
-1. Build the Next.js app image.
-2. Push the image to your preferred container registry.
-3. Copy Compose and nginx files to the server.
-4. Create the server `.env`.
-5. Start PostgreSQL.
-6. Run Drizzle migrations with the `migrate` service.
-7. Start the app and nginx.
+For a source checkout:
 
-Required production environment values include:
-
-- `DATABASE_URL`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL`
-- `EMAIL_SETTINGS_ENCRYPTION_KEY`
-- `IMAGE_TAG`
-- `CONTAINER_IMAGE`
-- `COMPOSE_PROJECT_NAME`
-- `NGINX_SERVER_NAME`
-- `NGINX_CERT_NAME`
-- upload settings such as `MAX_FILE_SIZE` and `ALLOWED_FILE_TYPES`
-
-Example self-hosting values:
-
-```env
-COMPOSE_PROJECT_NAME=librestaff_prod
-NGINX_SERVER_NAME=librestaff.example.com
-NGINX_CERT_NAME=librestaff.example.com
-CONTAINER_IMAGE=your-registry/librestaff
+```bash
+git fetch --tags origin
+git switch main
+git pull --ff-only
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm test:int
+pnpm build
 ```
 
-Use different `COMPOSE_PROJECT_NAME` values for dev and production if they ever run on the same Docker host. Uploaded media is mounted as a persistent Docker volume at `/app/public/media`.
+For Docker, pull the chosen image tag, run `docker compose run --rm migrate`, and then recreate the
+services. Avoid deploying the floating `latest` tag when reproducible rollbacks matter.
+
+## Keeping a Company Fork Updated
+
+Keep company-specific branding, integrations, and business rules in a separate repository. Add the
+public project as an `upstream` remote once:
+
+```bash
+git remote add upstream https://github.com/moh92ahm/librestaff.git
+git fetch upstream
+```
+
+To bring public changes into the company repository:
+
+```bash
+git switch main
+git switch -c update/librestaff-v1.x
+git fetch upstream
+git merge upstream/main
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm test:int
+pnpm build
+```
+
+Resolve conflicts on the update branch, review migrations carefully, and merge it through the
+company repository's normal review process. Never force-push the company branch merely to match
+upstream, and never copy production secrets or employee data back into the public repository.
+
+## Testing and Quality Checks
+
+```bash
+pnpm lint
+pnpm test:int
+pnpm test:e2e
+pnpm build
+pnpm audit
+```
+
+Playwright starts the development server automatically unless one is already running on
+`http://localhost:3000`.
+
+## Project Structure
+
+- `src/app`: pages, layouts, Server Actions, and API routes
+- `src/app/(dashboard)`: administrative and scoped-management pages
+- `src/app/(employee)`: employee-facing pages
+- `src/app/(public)`: setup, signup, and applicant routes
+- `src/components`: reusable and domain UI components
+- `src/db/schema`: PostgreSQL schema by domain
+- `src/lib`: authorization, business logic, media, notifications, and utilities
+- `drizzle`: committed migration files and metadata
+- `tests/int`: Vitest integration tests
+- `tests/e2e`: Playwright browser tests
+
+## Commercial Services
+
+LibreStaff is free and open-source software that you can deploy, modify, and maintain yourself under
+the terms of the AGPL-3.0-only license. The public documentation is intended to provide a practical
+self-hosting path without requiring a commercial agreement.
+
+Organizations that prefer professional assistance can request services from the project maintainer,
+including:
+
+- Production deployment and infrastructure configuration
+- PostgreSQL, persistent media, email, TLS, scheduled jobs, and backup setup
+- Version upgrades, security maintenance, monitoring, and restore testing
+- Data migration, custom branding, integrations, and feature development
+- Priority support and ongoing maintenance arrangements
+
+[Request LibreStaff deployment or support](https://yourwebsite.com/librestaff)
+
+Commercial services are separate from the community project and do not change the open-source
+license or restrict self-hosting.
+
+## Security
+
+Report vulnerabilities privately according to [SECURITY.md](SECURITY.md). Do not publish sensitive
+details in a GitHub issue.
+
+## Community
+
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
+- Ask questions and share early ideas in
+  [GitHub Discussions](https://github.com/moh92ahm/librestaff/discussions).
+- Review [SUPPORT.md](SUPPORT.md) for support scope and safe diagnostic sharing.
+- Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-LibreStaff is licensed under the GNU Affero General Public License v3.0 only. See `LICENSE` for the full terms.
-
-## Server Cron Jobs
-
-Protected cron endpoints require `CRON_SECRET` in the server environment. Use the same value in the `Authorization` header:
-
-```bash
-CRON_SECRET="replace-with-a-long-random-secret"
-curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://your-domain.com/api/jobs/birthday-notifications"
-```
-
-Required schedules:
-
-- Birthday notifications: runs daily and emits both `birthday.reminder` and `birthday.greeting`.
-
-  ```cron
-  5 0 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-domain.com/api/jobs/birthday-notifications"
-  ```
-
-- Payroll generation: runs monthly and creates missing payroll records for the selected period.
-
-  ```cron
-  10 0 1 * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-domain.com/api/jobs/payroll-generation"
-  ```
-
-  For a specific period:
-
-  ```bash
-  curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://your-domain.com/api/jobs/payroll-generation?month=06&year=2026"
-  ```
-
-- Notification outbox processor: runs every few minutes to turn queued events into in-app/email notifications.
-
-  ```cron
-  */2 * * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" "https://your-domain.com/api/jobs/notification-events?limit=50"
-  ```
-
-Use HTTPS in production. The endpoints also accept `?secret=...`, but the Authorization header is preferred.
-
-## Testing
-
-Run integration tests:
-
-```bash
-pnpm test:int
-```
-
-Run Playwright tests:
-
-```bash
-pnpm test:e2e
-```
-
-Run the full test suite:
-
-```bash
-pnpm test
-```
-
-The Playwright config starts `pnpm dev` automatically and reuses an existing server on `http://localhost:3000` when available.
+LibreStaff is distributed under the GNU Affero General Public License v3.0 only. If you modify it and
+offer the modified software over a network, review the AGPL source-availability obligations. See
+[LICENSE](LICENSE) for the complete license text.

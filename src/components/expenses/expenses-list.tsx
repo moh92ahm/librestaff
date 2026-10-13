@@ -39,7 +39,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -154,7 +153,6 @@ function shiftDateMonth(date: Date, offset: number) {
 function getMonthRange(date: Date) {
   const year = date.getFullYear()
   const month = date.getMonth()
-  const start = new Date(year, month, 1)
   const end = new Date(year, month + 1, 0)
   return {
     key: `${year}-${String(month + 1).padStart(2, '0')}`,

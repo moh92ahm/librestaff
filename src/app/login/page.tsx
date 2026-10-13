@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from '@/components/login-form'
 import { db } from '@/db'
 import { usersTable } from '@/db/schema'
 import { getCompanyBranding } from '@/lib/company-settings'
@@ -13,7 +13,7 @@ export default async function Page() {
   ])
 
   if (existingUser.length === 0) {
-    redirect('/signup')
+    redirect('/setup')
   }
 
   return (

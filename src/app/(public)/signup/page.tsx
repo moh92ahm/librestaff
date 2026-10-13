@@ -55,6 +55,10 @@ export default async function SignupPage({
   const isFirstUser = existingUser.length === 0
   let inviteEmail = ''
 
+  if (isFirstUser) {
+    redirect('/setup')
+  }
+
   if (!isFirstUser) {
     if (!token) {
       redirect('/login')
@@ -111,12 +115,14 @@ export default async function SignupPage({
             {isFirstUser ? t('createAdminAccount') : t('createAccount')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isFirstUser
-              ? t('firstAdminDescription')
-              : t('inviteLockedDescription')}
+            {isFirstUser ? t('firstAdminDescription') : t('inviteLockedDescription')}
           </p>
         </div>
-        <UserSignupForm initialEmail={inviteEmail} inviteToken={token} emailReadOnly={!isFirstUser} />
+        <UserSignupForm
+          initialEmail={inviteEmail}
+          inviteToken={token}
+          emailReadOnly={!isFirstUser}
+        />
       </div>
     </main>
   )

@@ -1,0 +1,91 @@
+name: Bug report
+description: Report a reproducible problem in LibreStaff
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include secrets, production data, private documents, or identifiable employee/applicant information. Report vulnerabilities through the private security link instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: LibreStaff version
+      description: Release tag or commit SHA where the problem occurs.
+      placeholder: v1.0.0 or commit SHA
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment method
+      options:
+        - Local development
+        - Docker Compose
+        - Self-hosted Node.js
+        - Vercel or another serverless platform
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node.js version, pnpm version, browser, and PostgreSQL version where relevant.
+      placeholder: Ubuntu 24.04, Node 22, pnpm 10, PostgreSQL 15, Firefox 131
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest sequence that consistently reproduces the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove tokens, cookies, personal information, company data, and internal addresses.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: I removed secrets and real employee, applicant, and company data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

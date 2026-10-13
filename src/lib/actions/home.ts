@@ -13,6 +13,7 @@ import { getAnnouncementFeed } from '@/lib/announcements'
 import { getDepartmentIdsWithAncestors } from '@/lib/department-hierarchy'
 import { getScopedUserIds } from '@/lib/permissions'
 import { hasFullAccess, type User } from '@/lib/rbac'
+import { requireAuth } from '@/lib/auth-guards'
 
 export type HomeAnnouncementPreview = {
   id: string
@@ -272,7 +273,8 @@ async function getAttentionItems(user: User): Promise<HomeAttentionItem[]> {
   return attentionItems.slice(0, 5)
 }
 
-export async function getHomePageData(user: User): Promise<HomePageData> {
+export async function getHomePageData(): Promise<HomePageData> {
+  const user = await requireAuth()
   const { now, today, endOfNextWeek, threeDaysAgo } = getHomeWindow()
 
   const [feed, manualEvents, birthdays, attentionItems] = await Promise.all([

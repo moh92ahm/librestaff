@@ -3,6 +3,10 @@ import createNextIntlPlugin from 'next-intl/plugin'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    const scriptSource =
+      process.env.NODE_ENV === 'development'
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+        : "script-src 'self' 'unsafe-inline'"
     const securityHeaders = [
       {
         key: 'Strict-Transport-Security',
@@ -22,8 +26,7 @@ const nextConfig = {
       },
       {
         key: 'Content-Security-Policy',
-        value:
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+        value: `default-src 'self'; ${scriptSource}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'`,
       },
     ]
 

@@ -35,7 +35,6 @@ import { notify } from '@/lib/notify'
 import { useTranslations } from 'next-intl'
 import type { InferSelectModel } from 'drizzle-orm'
 import { applicantsTable, mediaTable } from '@/db/schema'
-import type { User } from '@/lib/rbac'
 
 type Applicant = InferSelectModel<typeof applicantsTable> & {
   cvFile?: InferSelectModel<typeof mediaTable> | null
@@ -44,19 +43,18 @@ import { SetBreadcrumbLabel } from '@/components/set-breadcrumb-label'
 
 interface ApplicantDetailProps {
   applicant: Applicant
-  currentUser: User
 }
 
-const statusConfig: Record<string, { variant: any; icon: string }> = {
-  new: { variant: 'default', icon: '🆕' },
-  'under-review': { variant: 'secondary', icon: '👀' },
-  shortlisted: { variant: 'outline', icon: '⭐' },
-  'interview-scheduled': { variant: 'secondary', icon: '📅' },
-  rejected: { variant: 'destructive', icon: '❌' },
-  hired: { variant: 'default', icon: '✅' },
+const statusConfig: Record<string, { icon: string }> = {
+  new: { icon: '🆕' },
+  'under-review': { icon: '👀' },
+  shortlisted: { icon: '⭐' },
+  'interview-scheduled': { icon: '📅' },
+  rejected: { icon: '❌' },
+  hired: { icon: '✅' },
 }
 
-export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps) {
+export function ApplicantDetail({ applicant }: ApplicantDetailProps) {
   const t = useTranslations('applicants')
   const common = useTranslations('common')
   const enumT = useTranslations('enums')
@@ -115,10 +113,6 @@ export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps
       ? app.reviewedBy.fullName
       : null
 
-  const statusInfo = statusConfig[applicant.status] || {
-    variant: 'outline',
-    icon: '📄',
-  }
   const translatedEnum = (group: string, value: string | null | undefined) => {
     if (!value) return ''
     try {
@@ -285,7 +279,9 @@ export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps
                   <div className="flex items-center gap-2">
                     <UserCircle className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">{common('status')}</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {common('status')}
+                      </p>
                       <p className="text-sm font-semibold">
                         {translatedEnum('employmentStatus', applicant.currentEmploymentStatus)}
                       </p>
@@ -309,7 +305,9 @@ export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps
 
                 {app.availabilityDate && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('availableFrom')}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('availableFrom')}
+                    </p>
                     <p className="text-sm font-semibold">{formatDate(app.availabilityDate)}</p>
                   </div>
                 )}
@@ -362,9 +360,7 @@ export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps
                       <FileText className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-medium">{t('cvDocument')}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {t('cvHelp')}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{t('cvHelp')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -435,9 +431,7 @@ export function ApplicantDetail({ applicant, currentUser }: ApplicantDetailProps
                     placeholder={t('notesPlaceholder')}
                     rows={4}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t('notesHelp')}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('notesHelp')}</p>
                 </div>
               </CardContent>
             </Card>

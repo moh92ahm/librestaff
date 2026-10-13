@@ -34,14 +34,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return errorResponse('Paid or cancelled payments cannot be changed', 409)
     }
 
-    const [updated] = await db
+    await db
       .update(additionalPaymentsTable)
       .set({
         status: status as 'generated' | 'approved' | 'paid' | 'cancelled',
         updatedAt: new Date().toISOString(),
       })
       .where(eq(additionalPaymentsTable.id, id))
-      .returning({ id: additionalPaymentsTable.id })
 
     return successResponse({ message: 'Additional payment status updated successfully' })
   } catch (error) {

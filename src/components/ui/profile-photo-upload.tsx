@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { User, Camera, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,7 +26,7 @@ export function ProfilePhotoUpload({
   value,
   onChange,
   name,
-  placeholder = 'Upload profile photo',
+  placeholder: _placeholder = 'Upload profile photo',
   className,
   size = 'lg',
 }: ProfilePhotoUploadProps) {

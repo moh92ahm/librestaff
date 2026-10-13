@@ -27,7 +27,7 @@ export default async function EditInventoryPage({ params }: EditInventoryPagePro
     notFound()
   }
 
-  const users = await getInventoryHolderOptions(item.holderId)
+  const users = await getInventoryHolderOptions('edit', item.holderId)
   const handleUpdate = updateInventory.bind(null, id)
 
   return (

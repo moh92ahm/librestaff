@@ -168,7 +168,7 @@ export default async function EditLeavePage({ params }: EditLeavePageProps) {
         />
       </>
     )
-  } catch (e) {
+  } catch (_error) {
     notFound()
   }
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { count, asc } from 'drizzle-orm'
+import { count } from 'drizzle-orm'
 import { db } from '@/db'
-import { rolesTable, usersTable } from '@/db/schema'
+import { usersTable } from '@/db/schema'
 import { RolesSettings, type RoleSettingsItem } from '@/components/settings/roles-settings'
 import { groupPermissionRows } from '@/lib/role-permissions'
 
