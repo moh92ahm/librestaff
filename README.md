@@ -314,7 +314,7 @@ including:
 - Data migration, custom branding, integrations, and feature development
 - Priority support and ongoing maintenance arrangements
 
-[Request LibreStaff deployment or support](https://yourwebsite.com/librestaff)
+[Request LibreStaff deployment or support](https://operal.agency/contact)
 
 Commercial services are separate from the community project and do not change the open-source
 license or restrict self-hosting.
